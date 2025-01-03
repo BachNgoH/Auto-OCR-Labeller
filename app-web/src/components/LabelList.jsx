@@ -1,14 +1,12 @@
-const LabelList = ({ labels, setLabels, className }) => {
-  const handleVerify = (labelId) => {
-    setLabels((prev) =>
-      prev.map((label) =>
-        label.id === labelId ? { ...label, verified: true } : label
-      )
-    );
+const LabelList = ({ imageId, labelStore, className }) => {
+  const labels = labelStore.getLabelsForImage(imageId);
+
+  const handleTextChange = (labelId, newText) => {
+    labelStore.updateLabelInImage(imageId, labelId, { text: newText });
   };
 
   const handleDelete = (labelId) => {
-    setLabels((prev) => prev.filter((label) => label.id !== labelId));
+    labelStore.deleteLabelFromImage(imageId, labelId);
   };
 
   return (
@@ -21,34 +19,36 @@ const LabelList = ({ labels, setLabels, className }) => {
         {labels.map((label) => (
           <div
             key={label.id}
-            className={`p-3 rounded-lg border ${
-              label.verified
-                ? "border-green-200 bg-green-50"
-                : "border-yellow-200 bg-yellow-50"
-            }`}
+            className="p-3 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium">
-                {label.text || "Loading..."}
-              </span>
-              <div className="flex gap-2">
-                {!label.verified && (
-                  <button
-                    onClick={() => handleVerify(label.id)}
-                    className="px-3 py-1 text-sm font-medium text-green-700 bg-green-100 
-                             rounded hover:bg-green-200 transition-colors"
-                  >
-                    Verify
-                  </button>
-                )}
-                <button
-                  onClick={() => handleDelete(label.id)}
-                  className="px-3 py-1 text-sm font-medium text-red-700 bg-red-100 
-                           rounded hover:bg-red-200 transition-colors"
+              <input
+                type="text"
+                value={label.text || ""}
+                onChange={(e) => handleTextChange(label.id, e.target.value)}
+                placeholder="Enter label text"
+                className="flex-1 text-sm font-medium bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-blue-300 rounded px-2 py-1"
+              />
+              <button
+                onClick={() => handleDelete(label.id)}
+                className="inline-flex items-center justify-center w-6 h-6 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                title="Delete label"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                 >
-                  Delete
-                </button>
-              </div>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
             </div>
           </div>
         ))}

@@ -1,10 +1,17 @@
 import { useRef, useEffect } from "react";
 import { useLabeling } from "../hooks/useLabeling";
+import { useLabelStore } from "../hooks/useLabelStore";
 
-const ImageLabeler = ({ image, labels, setLabels, className }) => {
+const ImageLabeler = ({ image, imageId, labelStore, className }) => {
   const canvasRef = useRef(null);
-  const { isDrawing, currentBox, startDrawing, updateDrawing, finishDrawing } =
-    useLabeling();
+  const {
+    isDrawing,
+    currentBox,
+    startDrawing,
+    updateDrawing,
+    finishDrawing,
+    getResizeHandle,
+  } = useLabeling();
 
   useEffect(() => {
     if (!image) return;
@@ -17,14 +24,30 @@ const ImageLabeler = ({ image, labels, setLabels, className }) => {
       canvas.width = img.width;
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
-      drawLabels(ctx);
+
+      // Get labels for current image
+      const currentLabels = labelStore.getLabelsForImage(imageId);
+      drawLabels(ctx, currentLabels);
+
+      // Draw current box if we're drawing
+      if (isDrawing && currentBox) {
+        ctx.strokeStyle = "blue";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(
+          currentBox.x,
+          currentBox.y,
+          currentBox.width,
+          currentBox.height
+        );
+      }
     };
 
     img.src = image;
-  }, [image, labels]);
+  }, [image, imageId, labelStore, isDrawing, currentBox]);
 
-  const drawLabels = (ctx) => {
+  const drawLabels = (ctx, labels) => {
     labels.forEach((label) => {
+      // Draw the bounding box
       ctx.strokeStyle = label.verified ? "green" : "yellow";
       ctx.lineWidth = 2;
       ctx.strokeRect(
@@ -33,14 +56,25 @@ const ImageLabeler = ({ image, labels, setLabels, className }) => {
         label.box.width,
         label.box.height
       );
+
+      // Draw the label text above the box
+      ctx.font = "14px Arial";
+      ctx.fillStyle = label.verified ? "green" : "#b7a429";
+      ctx.fillText(
+        label.text || "Unlabeled",
+        label.box.x,
+        label.box.y - 5 // Position text 5 pixels above the box
+      );
     });
   };
 
   const handleMouseDown = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
+    const scaleX = canvasRef.current.width / rect.width;
+    const scaleY = canvasRef.current.height / rect.height;
     const point = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
     };
     startDrawing(point);
   };
@@ -49,11 +83,33 @@ const ImageLabeler = ({ image, labels, setLabels, className }) => {
     if (!isDrawing) return;
 
     const rect = canvasRef.current.getBoundingClientRect();
+    const scaleX = canvasRef.current.width / rect.width;
+    const scaleY = canvasRef.current.height / rect.height;
     const point = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
     };
     updateDrawing(point);
+
+    // Redraw the canvas
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    img.src = image;
+    ctx.drawImage(img, 0, 0);
+    drawLabels(ctx);
+
+    // Draw current box
+    if (currentBox) {
+      ctx.strokeStyle = "blue";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(
+        currentBox.x,
+        currentBox.y,
+        currentBox.width,
+        currentBox.height
+      );
+    }
   };
 
   const handleMouseUp = async () => {
@@ -61,14 +117,79 @@ const ImageLabeler = ({ image, labels, setLabels, className }) => {
 
     const box = await finishDrawing();
     if (box) {
-      // Here you would typically call your OCR API
       const newLabel = {
         id: Date.now(),
         box,
         text: "", // This would come from OCR API
         verified: false,
       };
-      setLabels((prev) => [...prev, newLabel]);
+      labelStore.addLabelToImage(imageId, newLabel);
+    }
+  };
+
+  const getCursorStyle = (e) => {
+    if (isDrawing) return "crosshair";
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    const scaleX = canvasRef.current.width / rect.width;
+    const scaleY = canvasRef.current.height / rect.height;
+    const point = {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
+    };
+
+    const handle = getResizeHandle(point, currentBox);
+    switch (handle) {
+      case "nw":
+      case "se":
+        return "nwse-resize";
+      case "ne":
+      case "sw":
+        return "nesw-resize";
+      case "n":
+      case "s":
+        return "ns-resize";
+      case "e":
+      case "w":
+        return "ew-resize";
+      default:
+        return "default";
+    }
+  };
+
+  const drawBox = (ctx, box, isActive = false) => {
+    // Draw the main box
+    ctx.strokeStyle = isActive ? "blue" : "yellow";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(box.x, box.y, box.width, box.height);
+
+    // Draw resize handles if box is active
+    if (isActive) {
+      const handleSize = 8;
+      const handles = [
+        { x: box.x, y: box.y }, // nw
+        { x: box.x + box.width, y: box.y }, // ne
+        { x: box.x + box.width, y: box.y + box.height }, // se
+        { x: box.x, y: box.y + box.height }, // sw
+        { x: box.x + box.width / 2, y: box.y }, // n
+        { x: box.x + box.width, y: box.y + box.height / 2 }, // e
+        { x: box.x + box.width / 2, y: box.y + box.height }, // s
+        { x: box.x, y: box.y + box.height / 2 }, // w
+      ];
+
+      ctx.fillStyle = "white";
+      ctx.strokeStyle = "blue";
+      handles.forEach((point) => {
+        ctx.beginPath();
+        ctx.rect(
+          point.x - handleSize / 2,
+          point.y - handleSize / 2,
+          handleSize,
+          handleSize
+        );
+        ctx.fill();
+        ctx.stroke();
+      });
     }
   };
 
@@ -84,7 +205,7 @@ const ImageLabeler = ({ image, labels, setLabels, className }) => {
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        style={{ cursor: isDrawing ? "crosshair" : "default" }}
+        style={{ cursor: getCursorStyle }}
         className="max-w-full h-auto"
       />
     </div>
