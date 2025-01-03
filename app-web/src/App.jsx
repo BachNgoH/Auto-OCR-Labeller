@@ -1,35 +1,55 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from "react";
+import ImageLabeler from "./components/ImageLabeler";
+import LabelList from "./components/LabelList";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [labels, setLabels] = useState([]);
+  const [currentImage, setCurrentImage] = useState(null);
+
+  const handleImageUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setCurrentImage(URL.createObjectURL(file));
+    }
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className="min-h-screen bg-gray-100 p-4">
+      <header className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-800 mb-4">
+          Image Labeling Tool
+        </h1>
+        <label className="block">
+          <span className="sr-only">Choose image</span>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="block w-full text-sm text-gray-500
+              file:mr-4 file:py-2 file:px-4
+              file:rounded-md file:border-0
+              file:text-sm file:font-semibold
+              file:bg-blue-50 file:text-blue-700
+              hover:file:bg-blue-100"
+          />
+        </label>
+      </header>
+
+      <main className="flex gap-4 flex-col lg:flex-row">
+        <ImageLabeler
+          image={currentImage}
+          labels={labels}
+          setLabels={setLabels}
+          className="flex-1"
+        />
+        <LabelList
+          labels={labels}
+          setLabels={setLabels}
+          className="w-full lg:w-80"
+        />
+      </main>
+    </div>
+  );
 }
 
-export default App
+export default App;
