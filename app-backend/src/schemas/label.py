@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import List
 
 class LabelBase(BaseModel):
     text: str | None = None
@@ -8,10 +9,15 @@ class LabelBase(BaseModel):
     width: float
     height: float
 
-class LabelCreate(LabelBase):
-    pass
+class LabelCreate(BaseModel):
+    image_id: int
+    x: float
+    y: float
+    width: float
+    height: float
+    text: str
 
-class Label(LabelBase):
+class Label(LabelCreate):
     id: int
 
     class Config:

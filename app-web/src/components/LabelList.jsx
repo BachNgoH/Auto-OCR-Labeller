@@ -1,9 +1,22 @@
 import React, { useState } from "react";
-import { labelApi } from "../services/api";
+import { labelApi, projectApi } from "../services/api";
+
+const RECOGNITION_ENGINES = {
+  easyocr: "EasyOCR",
+  paddle: {
+    label: "PaddleOCR",
+    options: {
+      recognizer: ["ch_PP-OCRv4", "en_PP-OCRv4"],
+      detector: ["ch_PP-OCRv4_det", "en_PP-OCRv4_det"],
+    },
+  },
+};
 
 const LabelList = ({ imageId, labelStore, className }) => {
   const labels = labelStore.getLabelsForImage(imageId);
   const [editingText, setEditingText] = useState({});
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [selectedEngine, setSelectedEngine] = useState("easyocr");
 
   const handleTextChange = (labelId, newText) => {
     setEditingText((prev) => ({
@@ -37,9 +50,81 @@ const LabelList = ({ imageId, labelStore, className }) => {
     }
   };
 
+  const handleDetectText = async () => {
+    setIsDetecting(true);
+    try {
+      const projectId = window.location.pathname.split("/")[2];
+
+      // For now, always use easyocr regardless of selection
+      const engine = "easyocr";
+      const detectedLabels = await projectApi.detectText(
+        projectId,
+        imageId,
+        engine
+      );
+
+      // Reload all labels to ensure consistency
+      const updatedLabels = await labelApi.getForImage(imageId);
+      labelStore.setLabelsForImage(imageId, updatedLabels);
+    } catch (error) {
+      console.error("Failed to detect text:", error);
+    } finally {
+      setIsDetecting(false);
+    }
+  };
+
+  const handleCleanLabels = async () => {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete all labels for this image?"
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await labelApi.cleanImageLabels(imageId);
+      // Refresh labels in store
+      labelStore.setLabelsForImage(imageId, []);
+    } catch (error) {
+      console.error("Failed to clean labels:", error);
+    }
+  };
+
   return (
     <div className={`${className} bg-white rounded-lg shadow-md p-4`}>
-      <h2 className="text-xl font-semibold text-gray-800 mb-4">Labels</h2>
+      <div className="space-y-4 mb-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-800">Labels</h2>
+          <select
+            value={selectedEngine}
+            onChange={(e) => setSelectedEngine(e.target.value)}
+            className="text-sm border rounded-md px-2 py-1"
+            disabled={isDetecting}
+          >
+            {Object.entries(RECOGNITION_ENGINES).map(([key, value]) => (
+              <option key={key} value={key}>
+                {typeof value === "string" ? value : value.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={handleDetectText}
+            disabled={isDetecting}
+            className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white px-3 py-2 rounded-md text-sm transition-colors"
+          >
+            {isDetecting ? "Detecting..." : "Detect Text"}
+          </button>
+          <button
+            onClick={handleCleanLabels}
+            className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-md text-sm transition-colors"
+          >
+            Clean All
+          </button>
+        </div>
+      </div>
       <div className="space-y-2">
         {labels.length === 0 && (
           <p className="text-gray-500 text-center py-4">No labels yet</p>

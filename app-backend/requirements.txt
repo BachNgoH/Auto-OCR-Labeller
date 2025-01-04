@@ -11,4 +11,7 @@ python-jose>=3.3.0
 pydantic>=2.4.0
 requests>=2.31.0
 pytest>=7.4.0
-httpx>=0.25.0 
+httpx>=0.25.0
+# paddlepaddle==3.0.0b2
+# paddlex==3.0.0b2
+# easyocr==1.7.0

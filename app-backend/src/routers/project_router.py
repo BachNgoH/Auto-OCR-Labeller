@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Literal
 from src.database.database import get_db
 from src.schemas import project as schemas
 from src.models import project as models
 from src.services.project_service import ProjectService
+from src.services.text_recognition_service import TextRecognitionService
+from src.services.label_service import LabelService
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -54,3 +56,44 @@ async def upload_images(
         uploaded_images.append(db_image)
     
     return {"uploaded": len(uploaded_images)}
+
+@router.post("/{project_id}/images/{image_id}/detect-text")
+async def detect_text(
+    project_id: int,
+    image_id: int,
+    engine: Literal["easyocr", "paddle"] = "easyocr",
+    db: Session = Depends(get_db)
+):
+    project_service = ProjectService(db)
+    image = project_service.get_image(image_id)
+    if not image or image.project_id != project_id:
+        raise HTTPException(status_code=404, detail="Image not found in project")
+
+    # Process image and create labels
+    text_recognition = TextRecognitionService(engine=engine)
+    detected_labels = text_recognition.process_image(image.file_path)
+    
+    # Save labels
+    label_service = LabelService(db)
+    created_labels = []
+    for label_data in detected_labels:
+        label_data['image_id'] = image_id
+        created_labels.append(label_service.create_label(label_data))
+    
+    return created_labels
+
+@router.delete("/{project_id}/labels", response_model=dict)
+def clean_project_labels(project_id: int, db: Session = Depends(get_db)):
+    """Delete all labels for a specific project"""
+    # Get all images in the project
+    project_service = ProjectService(db)
+    images = project_service.get_project_images(project_id)
+    
+    # Delete all labels for each image
+    deleted_count = 0
+    for image in images:
+        deleted = db.query(models.Label).filter(models.Label.image_id == image.id).delete()
+        deleted_count += deleted
+    
+    db.commit()
+    return {"status": "success", "deleted_count": deleted_count}
