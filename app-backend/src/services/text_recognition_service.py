@@ -11,7 +11,7 @@ class TextRecognitionService:
     @lru_cache(maxsize=1)
     def _get_easyocr(self):
         import easyocr
-        return easyocr.Reader(['en'])
+        return easyocr.Reader(['vi'])
 
     @lru_cache(maxsize=1)
     def _get_paddle_detector(self):
