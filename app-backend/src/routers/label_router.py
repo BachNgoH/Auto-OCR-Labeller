@@ -46,3 +46,10 @@ def delete_label(label_id: int, db: Session = Depends(get_db)):
     db.delete(db_label)
     db.commit()
     return {"status": "success"}
+
+@router.delete("/image/{image_id}", response_model=dict)
+def clean_image_labels(image_id: int, db: Session = Depends(get_db)):
+    """Delete all labels for a specific image"""
+    deleted = db.query(models.Label).filter(models.Label.image_id == image_id).delete()
+    db.commit()
+    return {"status": "success", "deleted_count": deleted}

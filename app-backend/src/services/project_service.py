@@ -29,3 +29,6 @@ class ProjectService(IProjectRepository):
     
     def get_projects(self):
         return self.db.query(Project).all() 
+    
+    def get_image(self, image_id: int) -> Image:
+        return self.db.query(Image).filter(Image.id == image_id).first() 

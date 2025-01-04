@@ -32,6 +32,27 @@ export const projectApi = {
       body: formData,
     }).then(handleResponse);
   },
+
+  async detectText(projectId, imageId, engine = "easyocr") {
+    const response = await fetch(
+      `${API_BASE_URL}/projects/${projectId}/images/${imageId}/detect-text?engine=${engine}`,
+      {
+        method: "POST",
+      }
+    );
+    if (!response.ok) throw new Error("Failed to detect text");
+    return response.json();
+  },
+
+  cleanProjectLabels: async (projectId) => {
+    const response = await fetch(
+      `${API_BASE_URL}/projects/${projectId}/labels`,
+      {
+        method: "DELETE",
+      }
+    );
+    return response.json();
+  },
 };
 
 export const labelApi = {
@@ -67,4 +88,11 @@ export const labelApi = {
     fetch(`${API_BASE_URL}/labels/${id}`, {
       method: "DELETE",
     }).then(handleResponse),
+
+  cleanImageLabels: async (imageId) => {
+    const response = await fetch(`${API_BASE_URL}/labels/image/${imageId}`, {
+      method: "DELETE",
+    });
+    return response.json();
+  },
 };

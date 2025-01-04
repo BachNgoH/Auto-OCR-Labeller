@@ -40,6 +40,23 @@ function Project() {
     }
   };
 
+  const handleCleanProjectLabels = async () => {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete all labels in this project?"
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await projectApi.cleanProjectLabels(projectId);
+      // You might want to refresh your project data here
+    } catch (error) {
+      console.error("Failed to clean project labels:", error);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 h-screen">
       <div className="flex items-center gap-4 mb-4">
@@ -67,6 +84,12 @@ function Project() {
             </label>
             <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md transition-colors">
               Export Labels
+            </button>
+            <button
+              onClick={handleCleanProjectLabels}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md transition-colors"
+            >
+              Clean All Labels
             </button>
           </div>
 
