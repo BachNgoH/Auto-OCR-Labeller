@@ -53,6 +53,9 @@ export const projectApi = {
     );
     return response.json();
   },
+
+  getDetails: (id) =>
+    fetch(`${API_BASE_URL}/projects/${id}`).then(handleResponse),
 };
 
 export const labelApi = {

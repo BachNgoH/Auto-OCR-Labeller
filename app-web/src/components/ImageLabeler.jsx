@@ -236,20 +236,29 @@ const ImageLabeler = ({ image, imageId, labelStore, className }) => {
   };
 
   return (
-    <div className={`${className} bg-white rounded-lg shadow-md p-4`}>
+    <div className={`${className} relative group`}>
       {!image && (
-        <div className="h-[500px] flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg">
-          <p className="text-gray-500">Upload an image to start labeling</p>
+        <div className="h-[500px] flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+          <p className="text-gray-500 text-lg">
+            Upload an image to start labeling
+          </p>
         </div>
       )}
-      <canvas
-        ref={canvasRef}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        style={{ cursor: getCursorStyle }}
-        className="max-w-full h-auto"
-      />
+      <div className="relative overflow-auto">
+        <canvas
+          ref={canvasRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          style={{ cursor: getCursorStyle }}
+          className="max-w-full h-auto block"
+        />
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+          <p className="text-white text-sm">
+            Click and drag to create a new label
+          </p>
+        </div>
+      </div>
     </div>
   );
 };
