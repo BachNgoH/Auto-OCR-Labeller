@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from ..database import get_db
-from ..schemas import label as schemas
-from ..models import label as models
+from src.database.database import get_db
+from src.schemas import label as schemas
+from src.models import label as models
 
 router = APIRouter(prefix="/api/labels", tags=["labels"])
 

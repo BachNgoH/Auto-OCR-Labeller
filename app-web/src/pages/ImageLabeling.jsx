@@ -1,17 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import ImageLabeler from "../components/ImageLabeler";
 import LabelList from "../components/LabelList";
-
-// Sample data
-const SAMPLE_LABELS = [
-  { id: 1, x: 100, y: 100, width: 200, height: 150, label: "Car" },
-  { id: 2, x: 300, y: 200, width: 100, height: 100, label: "Person" },
-];
+import { useLabelStore } from "../hooks/useLabelStore";
+import { labelApi } from "../services/api";
 
 function ImageLabeling() {
   const { projectId, imageId } = useParams();
-  const [labels, setLabels] = useState(SAMPLE_LABELS);
+  const labelStore = useLabelStore();
+
+  // Fetch existing labels when component mounts
+  useEffect(() => {
+    const fetchLabels = async () => {
+      try {
+        const labels = await labelApi.getForImage(imageId);
+        labelStore.setLabelsForImage(imageId, labels);
+      } catch (error) {
+        console.error("Failed to fetch labels:", error);
+      }
+    };
+    fetchLabels();
+  }, [imageId, labelStore]);
 
   return (
     <div className="h-screen flex flex-col">
@@ -33,18 +42,20 @@ function ImageLabeling() {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Replace Image Canvas Area with ImageLabeler */}
         <div className="flex-1 bg-gray-100 overflow-auto p-4">
           <ImageLabeler
             image="https://picsum.photos/800/600"
-            labels={labels}
-            setLabels={setLabels}
+            imageId={imageId}
+            labelStore={labelStore}
           />
         </div>
 
-        {/* Replace Labels Sidebar with LabelList */}
         <div className="w-80 bg-white border-l">
-          <LabelList labels={labels} setLabels={setLabels} className="h-full" />
+          <LabelList
+            imageId={imageId}
+            labelStore={labelStore}
+            className="h-full"
+          />
         </div>
       </div>
     </div>

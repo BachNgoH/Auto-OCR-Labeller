@@ -1,31 +1,32 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
-from ..database import get_db
-from ..schemas import project as schemas
-from ..models import project as models
+from src.database.database import get_db
+from src.schemas import project as schemas
+from src.models import project as models
+from src.services.project_service import ProjectService
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
-@router.post("/", response_model=schemas.Project)
+@router.get("", response_model=List[schemas.Project])
+def get_projects(db: Session = Depends(get_db)):
+    project_service = ProjectService(db)
+    return project_service.get_projects()
+
+@router.post("", response_model=schemas.Project)
 def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)):
-    db_project = models.Project(**project.dict())
-    db.add(db_project)
-    db.commit()
-    db.refresh(db_project)
-    return db_project
+    project_service = ProjectService(db)
+    return project_service.create_project(project.dict())
 
 @router.get("/{project_id}", response_model=schemas.Project)
 def get_project(project_id: int, db: Session = Depends(get_db)):
-    project = db.query(models.Project).filter(models.Project.id == project_id).first()
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    return project
+    project_service = ProjectService(db)
+    return project_service.get_project(project_id)
 
 @router.get("/{project_id}/images", response_model=List[schemas.Image])
 def get_project_images(project_id: int, db: Session = Depends(get_db)):
-    images = db.query(models.Image).filter(models.Image.project_id == project_id).all()
-    return images
+    project_service = ProjectService(db)
+    return project_service.get_project_images(project_id)
 
 @router.post("/{project_id}/images/upload")
 async def upload_images(

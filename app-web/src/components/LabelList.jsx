@@ -1,12 +1,40 @@
+import React, { useState } from "react";
+import { labelApi } from "../services/api";
+
 const LabelList = ({ imageId, labelStore, className }) => {
   const labels = labelStore.getLabelsForImage(imageId);
+  const [editingText, setEditingText] = useState({});
 
   const handleTextChange = (labelId, newText) => {
-    labelStore.updateLabelInImage(imageId, labelId, { text: newText });
+    setEditingText((prev) => ({
+      ...prev,
+      [labelId]: newText,
+    }));
   };
 
-  const handleDelete = (labelId) => {
-    labelStore.deleteLabelFromImage(imageId, labelId);
+  const handleTextBlur = async (labelId) => {
+    const newText = editingText[labelId];
+    if (newText === undefined) return;
+
+    try {
+      await labelStore.updateLabelInImage(imageId, labelId, { text: newText });
+      setEditingText((prev) => {
+        const next = { ...prev };
+        delete next[labelId];
+        return next;
+      });
+    } catch (error) {
+      console.error("Failed to update label:", error);
+    }
+  };
+
+  const handleDelete = async (labelId) => {
+    try {
+      await labelApi.delete(labelId);
+      labelStore.deleteLabelFromImage(imageId, labelId);
+    } catch (error) {
+      console.error("Failed to delete label:", error);
+    }
   };
 
   return (
@@ -24,8 +52,9 @@ const LabelList = ({ imageId, labelStore, className }) => {
             <div className="flex items-center justify-between gap-2">
               <input
                 type="text"
-                value={label.text || ""}
+                value={editingText[label.id] ?? label.text ?? ""}
                 onChange={(e) => handleTextChange(label.id, e.target.value)}
+                onBlur={() => handleTextBlur(label.id)}
                 placeholder="Enter label text"
                 className="flex-1 text-sm font-medium bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-blue-300 rounded px-2 py-1"
               />

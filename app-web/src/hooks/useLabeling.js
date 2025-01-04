@@ -136,7 +136,18 @@ export const useLabeling = () => {
     setIsDrawing(false);
     setIsResizing(false);
     setResizeHandle(null);
-    const finalBox = currentBox;
+
+    if (!currentBox) return null;
+
+    // Ensure positive width and height
+    const finalBox = {
+      x: currentBox.x,
+      y: currentBox.y,
+      width: Math.abs(currentBox.width),
+      height: Math.abs(currentBox.height),
+    };
+
+    setCurrentBox(null);
     setStartPoint(null);
     return finalBox;
   }, [currentBox]);

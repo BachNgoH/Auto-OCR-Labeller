@@ -1,9 +1,12 @@
 import { useRef, useEffect } from "react";
 import { useLabeling } from "../hooks/useLabeling";
 import { useLabelStore } from "../hooks/useLabelStore";
+import { labelApi } from "../services/api";
 
 const ImageLabeler = ({ image, imageId, labelStore, className }) => {
   const canvasRef = useRef(null);
+  const labelsLoadedRef = useRef(false);
+
   const {
     isDrawing,
     currentBox,
@@ -12,6 +15,31 @@ const ImageLabeler = ({ image, imageId, labelStore, className }) => {
     finishDrawing,
     getResizeHandle,
   } = useLabeling();
+
+  useEffect(() => {
+    if (!image || !imageId || labelsLoadedRef.current) return;
+
+    const loadLabels = async () => {
+      try {
+        const labels = await labelApi.getForImage(imageId);
+        const transformedLabels = labels.map((label) => ({
+          ...label,
+          box: {
+            x: label.x,
+            y: label.y,
+            width: label.width,
+            height: label.height,
+          },
+        }));
+        labelStore.setLabelsForImage(imageId, transformedLabels);
+        labelsLoadedRef.current = true;
+      } catch (error) {
+        console.error("Failed to load labels:", error);
+      }
+    };
+
+    loadLabels();
+  }, [imageId, labelStore]);
 
   useEffect(() => {
     if (!image) return;
@@ -24,6 +52,9 @@ const ImageLabeler = ({ image, imageId, labelStore, className }) => {
       canvas.width = img.width;
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
+
+      // Cache the image on the canvas element
+      canvas.imageCache = img;
 
       // Get labels for current image
       const currentLabels = labelStore.getLabelsForImage(imageId);
@@ -94,10 +125,14 @@ const ImageLabeler = ({ image, imageId, labelStore, className }) => {
     // Redraw the canvas
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-    const img = new Image();
-    img.src = image;
-    ctx.drawImage(img, 0, 0);
-    drawLabels(ctx);
+
+    // Instead of creating a new image, draw directly on the canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(canvas.imageCache, 0, 0);
+
+    // Draw existing labels
+    const currentLabels = labelStore.getLabelsForImage(imageId);
+    drawLabels(ctx, currentLabels);
 
     // Draw current box
     if (currentBox) {
@@ -117,13 +152,20 @@ const ImageLabeler = ({ image, imageId, labelStore, className }) => {
 
     const box = await finishDrawing();
     if (box) {
-      const newLabel = {
-        id: Date.now(),
-        box,
-        text: "", // This would come from OCR API
-        verified: false,
-      };
-      labelStore.addLabelToImage(imageId, newLabel);
+      try {
+        const newLabel = await labelApi.create({
+          imageId,
+          text: "",
+          x: box.x,
+          y: box.y,
+          width: box.width,
+          height: box.height,
+        });
+        labelStore.addLabelToImage(imageId, newLabel);
+      } catch (error) {
+        console.error("Failed to create label:", error);
+        // You might want to show an error notification here
+      }
     }
   };
 

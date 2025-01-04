@@ -1,25 +1,70 @@
-import axios from "axios";
-
 const API_BASE_URL = "http://localhost:8000/api";
 
+// Helper function to handle responses
+const handleResponse = async (response) => {
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  return response.json();
+};
+
 export const projectApi = {
-  create: (data) => axios.post(`${API_BASE_URL}/projects`, data),
-  get: (id) => axios.get(`${API_BASE_URL}/projects/${id}`),
-  getImages: (id) => axios.get(`${API_BASE_URL}/projects/${id}/images`),
+  create: (data) =>
+    fetch(`${API_BASE_URL}/projects`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    }).then(handleResponse),
+
+  get: (id) =>
+    fetch(`${API_BASE_URL}/projects${id ? `/${id}` : ""}`).then(handleResponse),
+
+  getImages: (id) =>
+    fetch(`${API_BASE_URL}/projects/${id}/images`).then(handleResponse),
+
   uploadImages: (projectId, files) => {
     const formData = new FormData();
     files.forEach((file) => formData.append("files", file));
-    return axios.post(
-      `${API_BASE_URL}/projects/${projectId}/images/upload`,
-      formData
-    );
+    return fetch(`${API_BASE_URL}/projects/${projectId}/images/upload`, {
+      method: "POST",
+      body: formData,
+    }).then(handleResponse);
   },
 };
 
 export const labelApi = {
-  create: (data) => axios.post(`${API_BASE_URL}/labels`, data),
+  create: (data) =>
+    fetch(`${API_BASE_URL}/labels`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        text: data.text,
+        image_id: data.imageId,
+        x: data.x,
+        y: data.y,
+        width: data.width,
+        height: data.height,
+      }),
+    }).then(handleResponse),
+
   getForImage: (imageId) =>
-    axios.get(`${API_BASE_URL}/labels/image/${imageId}`),
-  update: (id, data) => axios.put(`${API_BASE_URL}/labels/${id}`, data),
-  delete: (id) => axios.delete(`${API_BASE_URL}/labels/${id}`),
+    fetch(`${API_BASE_URL}/labels/image/${imageId}`).then(handleResponse),
+
+  update: (id, data) =>
+    fetch(`${API_BASE_URL}/labels/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    }).then(handleResponse),
+
+  delete: (id) =>
+    fetch(`${API_BASE_URL}/labels/${id}`, {
+      method: "DELETE",
+    }).then(handleResponse),
 };
