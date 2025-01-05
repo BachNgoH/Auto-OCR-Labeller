@@ -9,7 +9,7 @@ function Sidebar() {
     <div className="w-64 h-screen bg-gray-900 fixed left-0 top-0 text-white">
       <div className="p-6">
         <div className="mb-8">
-          <h1 className="text-xl font-bold text-white">OCR Trainer</h1>
+          <h1 className="text-xl font-bold text-white">Auto OCR Labeller</h1>
         </div>
 
         {/* User Profile Section */}
