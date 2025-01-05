@@ -10,8 +10,16 @@ const RECOGNITION_ENGINES = {
   paddle: {
     label: "PaddleOCR",
     options: {
-      recognizer: ["ch_PP-OCRv4", "en_PP-OCRv4"],
-      detector: ["ch_PP-OCRv4_det", "en_PP-OCRv4_det"],
+      recognizer: [
+        "PP-OCRv4_server_rec",
+        "PP-OCRv4_mobile_rec",
+        "VietOCR",
+        "gemini-1.5-pro",
+        "gemini-1.5-flash",
+        "gpt-4o",
+        "gpt-4o-mini",
+      ],
+      detector: ["PP-OCRv4_server_det", "PP-OCRv4_mobile_det"],
     },
   },
 };

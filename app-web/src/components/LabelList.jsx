@@ -88,7 +88,7 @@ const LabelList = ({ imageId, labelStore, selectedEngine, className }) => {
             disabled={isDetecting}
             className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
-            {isDetecting ? "Detecting..." : "Detect Text"}
+            {isDetecting ? "Detecting..." : "Auto Label"}
           </button>
           <button
             onClick={handleCleanLabels}
