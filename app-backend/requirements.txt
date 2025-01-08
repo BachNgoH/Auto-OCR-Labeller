@@ -15,3 +15,4 @@ httpx>=0.25.0
 # paddlepaddle==3.0.0b2
 # paddlex==3.0.0b2
 # easyocr==1.7.0
+pydantic[email]==2.9.2
