@@ -1,8 +1,21 @@
 const API_BASE_URL = "http://localhost:8000/api";
 
+const getHeaders = () => {
+  const token = localStorage.getItem("token");
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};
+
 // Helper function to handle responses
 const handleResponse = async (response) => {
   if (!response.ok) {
+    if (response.status === 401) {
+      // Handle unauthorized access
+      localStorage.removeItem("token");
+      window.location.href = "/login";
+    }
     throw new Error(`HTTP error! status: ${response.status}`);
   }
   return response.json();
@@ -12,9 +25,7 @@ export const projectApi = {
   create: (data) =>
     fetch(`${API_BASE_URL}/projects`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getHeaders(),
       body: JSON.stringify(data),
     }).then(handleResponse),
 
@@ -62,9 +73,7 @@ export const labelApi = {
   create: (data) =>
     fetch(`${API_BASE_URL}/labels`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getHeaders(),
       body: JSON.stringify({
         text: data.text,
         image_id: data.imageId,
@@ -81,9 +90,7 @@ export const labelApi = {
   update: (id, data) =>
     fetch(`${API_BASE_URL}/labels/${id}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getHeaders(),
       body: JSON.stringify(data),
     }).then(handleResponse),
 
