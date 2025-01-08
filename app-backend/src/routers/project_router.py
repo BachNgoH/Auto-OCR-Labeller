@@ -4,9 +4,11 @@ from typing import List, Literal
 from src.database.database import get_db
 from src.schemas import project as schemas
 from src.models import project as models
+from src.models import label as label_models
 from src.services.project_service import ProjectService
 from src.services.text_recognition_service import TextRecognitionService
 from src.services.label_service import LabelService
+import os
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -36,10 +38,14 @@ async def upload_images(
     files: List[UploadFile] = File(...),
     db: Session = Depends(get_db)
 ):
+    # Create project directory if it doesn't exist
+    project_dir = f"uploads/project_{project_id}"
+    os.makedirs(project_dir, exist_ok=True)
+    
     uploaded_images = []
     for file in files:
-        # Save file to disk
-        file_path = f"uploads/{file.filename}"
+        # Save file to project-specific directory
+        file_path = f"{project_dir}/{file.filename}"
         with open(file_path, "wb") as buffer:
             content = await file.read()
             buffer.write(content)
@@ -92,7 +98,7 @@ def clean_project_labels(project_id: int, db: Session = Depends(get_db)):
     # Delete all labels for each image
     deleted_count = 0
     for image in images:
-        deleted = db.query(models.Label).filter(models.Label.image_id == image.id).delete()
+        deleted = db.query(label_models.Label).filter(label_models.Label.image_id == image.id).delete()
         deleted_count += deleted
     
     db.commit()

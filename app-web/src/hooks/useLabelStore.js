@@ -73,11 +73,16 @@ export const useLabelStore = () => {
     }
   }, []);
 
+  const clearAllLabels = useCallback(() => {
+    setLabelsByImage({});
+  }, []);
+
   return {
     getLabelsForImage,
     setLabelsForImage,
     addLabelToImage,
     deleteLabelFromImage,
     updateLabelInImage,
+    clearAllLabels,
   };
 };

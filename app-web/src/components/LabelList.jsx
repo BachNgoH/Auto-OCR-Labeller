@@ -1,7 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { labelApi, projectApi } from "../services/api";
 
-const LabelList = ({ imageId, labelStore, selectedEngine, className }) => {
+const LabelList = ({
+  imageId,
+  labelStore,
+  selectedEngine,
+  className,
+  clearCurrentBox,
+}) => {
   const labels = labelStore.getLabelsForImage(imageId);
   const [editingText, setEditingText] = useState({});
   const [isDetecting, setIsDetecting] = useState(false);
@@ -75,6 +81,13 @@ const LabelList = ({ imageId, labelStore, selectedEngine, className }) => {
       console.error("Failed to clean labels:", error);
     }
   };
+
+  useEffect(() => {
+    // Only call clearCurrentBox if it exists
+    if (clearCurrentBox) {
+      clearCurrentBox();
+    }
+  }, [labels, clearCurrentBox]);
 
   return (
     <div className={`${className} flex flex-col h-full`}>
