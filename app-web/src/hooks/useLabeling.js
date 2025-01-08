@@ -147,10 +147,22 @@ export const useLabeling = () => {
       height: Math.abs(currentBox.height),
     };
 
+    // Only clear the current box if we're not in auto-detect mode
+    if (!isResizing) {
+      setCurrentBox(null);
+      setStartPoint(null);
+    }
+
+    return finalBox;
+  }, [currentBox, isResizing]);
+
+  const clearCurrentBox = useCallback(() => {
     setCurrentBox(null);
     setStartPoint(null);
-    return finalBox;
-  }, [currentBox]);
+    setIsDrawing(false);
+    setIsResizing(false);
+    setResizeHandle(null);
+  }, []);
 
   return {
     isDrawing,
@@ -160,5 +172,6 @@ export const useLabeling = () => {
     updateDrawing,
     finishDrawing,
     getResizeHandle,
+    clearCurrentBox,
   };
 };

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import ImageLabeler from "../components/ImageLabeler";
 import LabelList from "../components/LabelList";
@@ -37,6 +37,11 @@ function Project() {
     detector: "ch_PP-OCRv4_det",
   });
   const [projectDetails, setProjectDetails] = useState(null);
+  const [leftWidth, setLeftWidth] = useState(288);
+  const [rightWidth, setRightWidth] = useState(384);
+  const isDraggingLeft = useRef(false);
+  const isDraggingRight = useRef(false);
+  const [labelingTools, setLabelingTools] = useState(null);
 
   // Load project images
   useEffect(() => {
@@ -90,10 +95,91 @@ function Project() {
 
     try {
       await projectApi.cleanProjectLabels(projectId);
+      labelStore.clearAllLabels();
       // You might want to refresh your project data here
     } catch (error) {
       console.error("Failed to clean project labels:", error);
     }
+  };
+
+  // Update the mouse event handler for smoother resizing
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (isDraggingLeft.current) {
+        // Get the container's left edge position
+        const container = document.querySelector(".px-8");
+        const containerRect = container.getBoundingClientRect();
+        const minWidth = 200;
+        const maxWidth = Math.min(600, window.innerWidth * 0.4); // 40% of window width
+
+        // Calculate new width relative to container
+        const newWidth = Math.max(
+          minWidth,
+          Math.min(maxWidth, e.clientX - containerRect.left)
+        );
+
+        // Use requestAnimationFrame for smoother updates
+        requestAnimationFrame(() => {
+          setLeftWidth(newWidth);
+        });
+      }
+      if (isDraggingRight.current) {
+        const containerWidth = window.innerWidth - 64; // 64px for padding
+        const newWidth = Math.max(250, containerWidth - e.clientX);
+        setRightWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      isDraggingLeft.current = false;
+      isDraggingRight.current = false;
+      document.body.style.cursor = "default";
+      document.body.style.userSelect = "auto";
+    };
+
+    const handleMouseDown = () => {
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none"; // Prevent text selection while dragging
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    document.addEventListener("mousedown", handleMouseDown);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("mousedown", handleMouseDown);
+    };
+  }, []);
+
+  const handleExportLabels = async () => {
+    try {
+      // Trigger file download
+      const response = await fetch(
+        `http://localhost:8000/api/labels/project/${projectId}/export`
+      );
+      const blob = await response.blob();
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `project_${projectId}_dataset.zip`;
+      document.body.appendChild(a);
+      a.click();
+
+      // Cleanup
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Failed to export labels:", error);
+    }
+  };
+
+  // Add this function to receive the labeling tools
+  const handleLabelingInit = (tools) => {
+    setLabelingTools(tools);
   };
 
   return (
@@ -201,86 +287,108 @@ function Project() {
       </div>
 
       <div className="flex gap-6 h-[calc(100vh-160px)]">
-        {/* Left Sidebar - now more compact */}
-        <div className="w-72 bg-white rounded-xl shadow-lg p-4 overflow-y-auto border border-gray-100">
-          <div className="flex flex-col gap-2 mb-4">
-            <label className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all cursor-pointer text-center text-sm font-medium shadow-sm hover:shadow-md">
-              Upload Images
-              <input
-                type="file"
-                multiple
-                onChange={handleFileUpload}
-                className="hidden"
-                accept="image/*"
-              />
-            </label>
-            <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-all text-sm font-medium shadow-sm hover:shadow-md">
-              Export Labels
-            </button>
-            <button
-              onClick={handleCleanProjectLabels}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-all text-sm font-medium shadow-sm hover:shadow-md"
-            >
-              Clean All Labels
-            </button>
-          </div>
+        {/* Left Sidebar */}
+        <div
+          style={{ width: leftWidth }}
+          className="flex-shrink-0 bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100"
+        >
+          <div className="p-4 h-full overflow-y-auto">
+            <div className="flex flex-col gap-2 mb-4">
+              <label className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all cursor-pointer text-center text-sm font-medium shadow-sm hover:shadow-md">
+                Upload Images
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  accept="image/*"
+                />
+              </label>
+              <button
+                onClick={handleExportLabels}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-all text-sm font-medium shadow-sm hover:shadow-md"
+              >
+                Export Labels
+              </button>
+              <button
+                onClick={handleCleanProjectLabels}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-all text-sm font-medium shadow-sm hover:shadow-md"
+              >
+                Clean All Labels
+              </button>
+            </div>
 
-          <div className="space-y-1">
-            {isLoading ? (
-              <p className="text-gray-500 text-center py-4">
-                Loading images...
-              </p>
-            ) : images.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">
-                No images uploaded yet
-              </p>
-            ) : (
-              images.map((image) => (
-                <div
-                  key={image.id}
-                  onClick={() => setSelectedImage(image)}
-                  className={`cursor-pointer p-2 rounded-lg transition-all ${
-                    selectedImage?.id === image.id
-                      ? "bg-blue-50 text-blue-700"
-                      : "hover:bg-gray-50 text-gray-700"
-                  }`}
-                >
-                  <p className="text-sm truncate">{image.filename}</p>
-                </div>
-              ))
-            )}
+            <div className="space-y-1">
+              {isLoading ? (
+                <p className="text-gray-500 text-center py-4">
+                  Loading images...
+                </p>
+              ) : images.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">
+                  No images uploaded yet
+                </p>
+              ) : (
+                images.map((image) => (
+                  <div
+                    key={image.id}
+                    onClick={() => setSelectedImage(image)}
+                    className={`cursor-pointer p-2 rounded-lg transition-all ${
+                      selectedImage?.id === image.id
+                        ? "bg-blue-50 text-blue-700"
+                        : "hover:bg-gray-50 text-gray-700"
+                    }`}
+                  >
+                    <p className="text-sm truncate">{image.filename}</p>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Main content area improvements */}
-        <div className="flex-1 flex gap-6">
-          <div className="flex-1">
-            {selectedImage ? (
+        {/* Left Resize Handle */}
+        <div
+          className="w-1 bg-gray-200 hover:bg-blue-400 cursor-col-resize transition-colors"
+          onMouseDown={() => (isDraggingLeft.current = true)}
+        />
+
+        {/* Main content area */}
+        <div className="flex-1 overflow-hidden">
+          {selectedImage ? (
+            <div className="h-full overflow-auto">
               <ImageLabeler
                 image={`http://localhost:8000/${selectedImage.file_path}`}
                 imageId={selectedImage.id}
                 labelStore={labelStore}
-                className="h-full rounded-xl shadow-lg overflow-hidden"
+                className="rounded-xl shadow-lg"
+                onLabelingInit={handleLabelingInit}
               />
-            ) : (
-              <div className="h-full flex items-center justify-center bg-white rounded-xl shadow-lg border border-gray-100">
-                <p className="text-gray-500 text-lg">
-                  Select an image to start labeling
-                </p>
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="h-full flex items-center justify-center bg-white rounded-xl shadow-lg border border-gray-100">
+              <p className="text-gray-500 text-lg">
+                Select an image to start labeling
+              </p>
+            </div>
+          )}
+        </div>
 
-          {/* Right sidebar improvements */}
-          <div className="w-96">
-            <LabelList
-              imageId={selectedImage?.id}
-              labelStore={labelStore}
-              selectedEngine={selectedEngine}
-              paddleOptions={paddleOptions}
-              className="sticky top-4 bg-white rounded-xl shadow-lg p-6 border border-gray-100"
-            />
-          </div>
+        {/* Right Resize Handle */}
+        <div
+          className="w-1 bg-gray-200 hover:bg-blue-400 cursor-col-resize transition-colors"
+          onMouseDown={() => (isDraggingRight.current = true)}
+        />
+
+        {/* Right sidebar */}
+        <div style={{ width: rightWidth }} className="flex-shrink-0">
+          <LabelList
+            imageId={selectedImage?.id}
+            labelStore={labelStore}
+            selectedEngine={selectedEngine}
+            paddleOptions={paddleOptions}
+            className="sticky top-4 bg-white rounded-xl shadow-lg p-6 border border-gray-100 overflow-y-auto max-h-full"
+            clearCurrentBox={labelingTools?.clearCurrentBox}
+          />
         </div>
       </div>
     </div>

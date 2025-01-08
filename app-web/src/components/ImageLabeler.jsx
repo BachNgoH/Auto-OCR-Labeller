@@ -3,7 +3,13 @@ import { useLabeling } from "../hooks/useLabeling";
 import { useLabelStore } from "../hooks/useLabelStore";
 import { labelApi } from "../services/api";
 
-const ImageLabeler = ({ image, imageId, labelStore, className }) => {
+const ImageLabeler = ({
+  image,
+  imageId,
+  labelStore,
+  className,
+  onLabelingInit,
+}) => {
   const canvasRef = useRef(null);
   const labelsLoadedRef = useRef(false);
 
@@ -14,6 +20,7 @@ const ImageLabeler = ({ image, imageId, labelStore, className }) => {
     updateDrawing,
     finishDrawing,
     getResizeHandle,
+    clearCurrentBox,
   } = useLabeling();
 
   useEffect(() => {
@@ -234,6 +241,12 @@ const ImageLabeler = ({ image, imageId, labelStore, className }) => {
       });
     }
   };
+
+  useEffect(() => {
+    if (onLabelingInit) {
+      onLabelingInit({ clearCurrentBox });
+    }
+  }, [clearCurrentBox]);
 
   return (
     <div className={`${className} relative group`}>

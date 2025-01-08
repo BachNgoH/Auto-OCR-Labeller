@@ -55,9 +55,17 @@ function Home() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="px-8 py-12">
         <header className="mb-12">
-          <h1 className="text-4xl font-bold text-gray-800 tracking-tight">
-            OCR Training Projects
-          </h1>
+          <div className="flex justify-between items-center">
+            <h1 className="text-4xl font-bold text-gray-800 tracking-tight">
+              OCR Training Projects
+            </h1>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+            >
+              Create Project
+            </button>
+          </div>
         </header>
 
         {isLoading ? (
