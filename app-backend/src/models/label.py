@@ -7,10 +7,10 @@ class Label(Base, TimeStampMixin):
 
     id = Column(Integer, primary_key=True, index=True)
     image_id = Column(Integer, ForeignKey("images.id"))
-    x = Column(Float)
-    y = Column(Float)
-    width = Column(Float)
-    height = Column(Float)
+    x = Column(Float, nullable=True)
+    y = Column(Float, nullable=True)
+    width = Column(Float, nullable=True)
+    height = Column(Float, nullable=True)
     text = Column(String)
     
     # Relationships

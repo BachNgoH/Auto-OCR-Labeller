@@ -1,11 +1,12 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Literal
 from datetime import datetime
 from .base import TimeStampSchema
 
 class ProjectBase(BaseModel):
     name: str
     description: Optional[str] = None
+    mode: Literal["bbox", "text"]
 
 class ProjectCreate(ProjectBase):
     pass

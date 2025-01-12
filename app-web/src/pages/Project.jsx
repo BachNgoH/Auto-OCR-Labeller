@@ -4,6 +4,7 @@ import ImageLabeler from "../components/ImageLabeler";
 import LabelList from "../components/LabelList";
 import { useLabelStore } from "../hooks/useLabelStore";
 import { projectApi, labelApi } from "../services/api";
+import TextLabeler from "../components/TextLabeler";
 
 const RECOGNITION_ENGINES = {
   easyocr: "EasyOCR",
@@ -42,6 +43,7 @@ function Project() {
   const isDraggingLeft = useRef(false);
   const isDraggingRight = useRef(false);
   const [labelingTools, setLabelingTools] = useState(null);
+  const [projectMode, setProjectMode] = useState("bbox");
 
   // Load project images
   useEffect(() => {
@@ -60,15 +62,12 @@ function Project() {
 
   // Add new useEffect for loading project details
   useEffect(() => {
-    const loadProjectDetails = async () => {
-      try {
-        const details = await projectApi.getDetails(projectId);
-        setProjectDetails(details);
-      } catch (error) {
-        console.error("Failed to load project details:", error);
-      }
+    const fetchProjectDetails = async () => {
+      const details = await projectApi.getDetails(projectId);
+      setProjectDetails(details);
+      setProjectMode(details.mode);
     };
-    loadProjectDetails();
+    fetchProjectDetails();
   }, [projectId]);
 
   // Handle file uploads
@@ -81,6 +80,24 @@ function Project() {
       setImages(updatedImages);
     } catch (error) {
       console.error("Failed to upload images:", error);
+    }
+  };
+
+  const handleTextModeUpload = async (files) => {
+    const formData = new FormData();
+    for (const file of files) {
+      formData.append("files", file);
+    }
+
+    try {
+      const response = await projectApi.uploadTextModeFiles(
+        projectId,
+        formData
+      );
+      // Refresh images after upload
+      fetchImages();
+    } catch (error) {
+      console.error("Failed to upload files:", error);
     }
   };
 
@@ -180,6 +197,11 @@ function Project() {
   // Add this function to receive the labeling tools
   const handleLabelingInit = (tools) => {
     setLabelingTools(tools);
+  };
+
+  const getCurrentImageLabels = () => {
+    if (!selectedImage?.id) return [];
+    return labelStore.getLabelsForImage(selectedImage.id) || [];
   };
 
   return (
@@ -356,13 +378,25 @@ function Project() {
         <div className="flex-1 overflow-hidden">
           {selectedImage ? (
             <div className="h-full overflow-auto">
-              <ImageLabeler
-                image={`http://localhost:8000/${selectedImage.file_path}`}
-                imageId={selectedImage.id}
-                labelStore={labelStore}
-                className="rounded-xl shadow-lg"
-                onLabelingInit={handleLabelingInit}
-              />
+              {projectMode === "bbox" ? (
+                <ImageLabeler
+                  image={`http://localhost:8000/${selectedImage.file_path}`}
+                  imageId={selectedImage.id}
+                  labelStore={labelStore}
+                  className="rounded-xl shadow-lg"
+                  onLabelingInit={handleLabelingInit}
+                  currentLabels={getCurrentImageLabels()}
+                />
+              ) : (
+                <div className="flex flex-col h-full">
+                  <TextLabeler
+                    image={`http://localhost:8000/${selectedImage.file_path}`}
+                    imageId={selectedImage.id}
+                    labelStore={labelStore}
+                    className="rounded-xl shadow-lg flex-1"
+                  />
+                </div>
+              )}
             </div>
           ) : (
             <div className="h-full flex items-center justify-center bg-white rounded-xl shadow-lg border border-gray-100">
@@ -373,23 +407,25 @@ function Project() {
           )}
         </div>
 
-        {/* Right Resize Handle */}
-        <div
-          className="w-1 bg-gray-200 hover:bg-blue-400 cursor-col-resize transition-colors"
-          onMouseDown={() => (isDraggingRight.current = true)}
-        />
-
-        {/* Right sidebar */}
-        <div style={{ width: rightWidth }} className="flex-shrink-0">
-          <LabelList
-            imageId={selectedImage?.id}
-            labelStore={labelStore}
-            selectedEngine={selectedEngine}
-            paddleOptions={paddleOptions}
-            className="sticky top-4 bg-white rounded-xl shadow-lg p-6 border border-gray-100 overflow-y-auto max-h-full"
-            clearCurrentBox={labelingTools?.clearCurrentBox}
-          />
-        </div>
+        {/* Right Resize Handle and Sidebar - Only show in bbox mode */}
+        {projectMode === "bbox" && (
+          <>
+            <div
+              className="w-1 bg-gray-200 hover:bg-blue-400 cursor-col-resize transition-colors"
+              onMouseDown={() => (isDraggingRight.current = true)}
+            />
+            <div style={{ width: rightWidth }} className="flex-shrink-0">
+              <LabelList
+                imageId={selectedImage?.id}
+                labelStore={labelStore}
+                selectedEngine={selectedEngine}
+                paddleOptions={paddleOptions}
+                className="sticky top-4 bg-white rounded-xl shadow-lg p-6 border border-gray-100 overflow-y-auto max-h-full"
+                clearCurrentBox={labelingTools?.clearCurrentBox}
+              />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

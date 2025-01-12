@@ -9,6 +9,7 @@ function Home() {
   const [newProject, setNewProject] = useState({
     name: "",
     description: "",
+    mode: "bbox",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -33,7 +34,7 @@ function Home() {
     try {
       await projectApi.create(newProject);
       setIsModalOpen(false);
-      setNewProject({ name: "", description: "" });
+      setNewProject({ name: "", description: "", mode: "bbox" });
       // Refresh the projects list
       await fetchProjects();
     } catch (error) {
@@ -190,6 +191,20 @@ function Home() {
                     rows="3"
                     required
                   />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-gray-700 font-medium mb-2">
+                    Labeling Mode
+                  </label>
+                  <select
+                    name="mode"
+                    value={newProject.mode}
+                    onChange={handleInputChange}
+                    className="w-full border rounded px-3 py-2"
+                  >
+                    <option value="bbox">Bounding Box + Text</option>
+                    <option value="text">Text Only</option>
+                  </select>
                 </div>
                 <div className="flex justify-end gap-2">
                   <button
