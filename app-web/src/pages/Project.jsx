@@ -199,6 +199,11 @@ function Project() {
     setLabelingTools(tools);
   };
 
+  const getCurrentImageLabels = () => {
+    if (!selectedImage?.id) return [];
+    return labelStore.getLabelsForImage(selectedImage.id) || [];
+  };
+
   return (
     <div className="px-8 py-8 h-screen bg-gray-50">
       <div className="flex items-center justify-between bg-white shadow-sm rounded-lg px-6 py-4 mb-8">
@@ -380,14 +385,17 @@ function Project() {
                   labelStore={labelStore}
                   className="rounded-xl shadow-lg"
                   onLabelingInit={handleLabelingInit}
+                  currentLabels={getCurrentImageLabels()}
                 />
               ) : (
-                <TextLabeler
-                  image={`http://localhost:8000/${selectedImage.file_path}`}
-                  imageId={selectedImage.id}
-                  labelStore={labelStore}
-                  className="rounded-xl shadow-lg"
-                />
+                <div className="flex flex-col h-full">
+                  <TextLabeler
+                    image={`http://localhost:8000/${selectedImage.file_path}`}
+                    imageId={selectedImage.id}
+                    labelStore={labelStore}
+                    className="rounded-xl shadow-lg flex-1"
+                  />
+                </div>
               )}
             </div>
           ) : (
@@ -399,23 +407,25 @@ function Project() {
           )}
         </div>
 
-        {/* Right Resize Handle */}
-        <div
-          className="w-1 bg-gray-200 hover:bg-blue-400 cursor-col-resize transition-colors"
-          onMouseDown={() => (isDraggingRight.current = true)}
-        />
-
-        {/* Right sidebar */}
-        <div style={{ width: rightWidth }} className="flex-shrink-0">
-          <LabelList
-            imageId={selectedImage?.id}
-            labelStore={labelStore}
-            selectedEngine={selectedEngine}
-            paddleOptions={paddleOptions}
-            className="sticky top-4 bg-white rounded-xl shadow-lg p-6 border border-gray-100 overflow-y-auto max-h-full"
-            clearCurrentBox={labelingTools?.clearCurrentBox}
-          />
-        </div>
+        {/* Right Resize Handle and Sidebar - Only show in bbox mode */}
+        {projectMode === "bbox" && (
+          <>
+            <div
+              className="w-1 bg-gray-200 hover:bg-blue-400 cursor-col-resize transition-colors"
+              onMouseDown={() => (isDraggingRight.current = true)}
+            />
+            <div style={{ width: rightWidth }} className="flex-shrink-0">
+              <LabelList
+                imageId={selectedImage?.id}
+                labelStore={labelStore}
+                selectedEngine={selectedEngine}
+                paddleOptions={paddleOptions}
+                className="sticky top-4 bg-white rounded-xl shadow-lg p-6 border border-gray-100 overflow-y-auto max-h-full"
+                clearCurrentBox={labelingTools?.clearCurrentBox}
+              />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

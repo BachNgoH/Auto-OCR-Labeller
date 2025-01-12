@@ -13,8 +13,23 @@ from src.services.project_service import ProjectService
 
 router = APIRouter(prefix="/api/labels", tags=["labels"])
 
-@router.post("/", response_model=schemas.Label)
+@router.post("", response_model=schemas.Label)
 def create_label(label: schemas.LabelCreate, db: Session = Depends(get_db)):
+    # Check if this is a text-only label (no coordinates)
+    is_text_only = all(v is None for v in [label.x, label.y, label.width, label.height])
+    
+    if is_text_only:
+        print("Text-only label detected")
+        # For text-only labels, delete any existing label for this image
+        existing_label = db.query(models.Label).filter(
+            models.Label.image_id == label.image_id
+        ).first()
+        print(existing_label)
+        if existing_label:
+            db.delete(existing_label)
+            db.commit()
+    
+    # Create new label
     db_label = models.Label(**label.dict())
     db.add(db_label)
     db.commit()
@@ -24,6 +39,7 @@ def create_label(label: schemas.LabelCreate, db: Session = Depends(get_db)):
 @router.get("/image/{image_id}", response_model=List[schemas.Label])
 def get_image_labels(image_id: int, db: Session = Depends(get_db)):
     labels = db.query(models.Label).filter(models.Label.image_id == image_id).all()
+    print(labels)
     return labels
 
 @router.put("/{label_id}", response_model=schemas.Label)
