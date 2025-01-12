@@ -3,6 +3,10 @@
 ## Giới thiệu
 
 Auto OCR Labeller là một công cụ gán nhãn bán tự động cho OCR tiếng Việt, được phát triển dưới dạng ứng dụng web. Công cụ này giúp đơn giản hóa quá trình tạo dữ liệu huấn luyện cho các mô hình OCR tiếng Việt.
+## Demo
+[screen-capture (4).webm](https://github.com/user-attachments/assets/6d169d38-3b33-405c-84b2-75a4c6888a55)
+
+
 
 ## Ưu điểm
 
