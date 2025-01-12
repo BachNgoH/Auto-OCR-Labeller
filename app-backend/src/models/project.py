@@ -8,6 +8,7 @@ class Project(Base, TimeStampMixin):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     description = Column(String)
+    mode = Column(String, nullable=False, default="bbox")  # "bbox" or "text"
     
     # Relationships
     images = relationship("Image", back_populates="project", cascade="all, delete-orphan")
