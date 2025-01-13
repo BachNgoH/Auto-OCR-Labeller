@@ -1,0 +1,3 @@
+[submodule "app-ocr"]
+	path = app-ocr
+	url = https://github.com/BachNgoH/vietnamese_book_ocr.git
